@@ -1,0 +1,83 @@
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(STUDENT)
+  createdAt DateTime @default(now())
+  events    Event[]
+  registrations Registration[]
+  notifications Notification[]
+}
+
+enum Role {
+  STUDENT
+  ORGANIZER
+  ADMIN
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  category String @default("Other")
+  date        DateTime
+  venue       String
+  organizerId String
+  organizer   User     @relation(fields: [organizerId], references: [id])
+  status      EventStatus @default(PENDING)
+  capacity    Int?
+  createdAt   DateTime @default(now())
+  registrations Registration[]
+  reminders EventReminder[]
+}
+
+enum EventStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PUBLISHED
+}
+
+model Registration {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id])
+  ticketId  String   @unique @default(uuid())
+  qrCode    String
+  checkedIn Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String?
+  type      String   @default("DEFAULT")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EventReminder {
+  id        String   @id @default(uuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id])
+  sentAt    DateTime @default(now())
+
+  @@unique([eventId])  // one reminder per event
+}
